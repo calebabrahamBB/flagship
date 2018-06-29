@@ -1,0 +1,43 @@
+language: node_js
+node_js: '10'
+sudo: false
+cache: yarn
+stages:
+- test
+- deploy
+install:
+- yarn global add lerna
+- yarn --silent --non-interactive --ignore-scripts
+jobs:
+  include:
+  - script: commitlint-travis || travis_terminate 1
+  -
+    before_install: yarn global add greenkeeper-lockfile@1
+    before_script: greenkeeper-lockfile-update
+    script: yarn prepare || travis_terminate 1
+    after_script: greenkeeper-lockfile-upload
+  - script:
+    - yarn prepare:fscodestyle
+    - yarn lint || travis_terminate 1
+  - script: yarn test --ci && yarn test:success || travis_terminate 1
+  - script:
+    - yarn prepare
+    - yarn build:storybook || travis_terminate 1
+  - stage: deploy
+    if: branch = master AND head_branch IS blank
+    before_install: npm config set //registry.npmjs.org/:_authToken=${NPM_TOKEN} -q
+    script:
+    - yarn prepare
+    - yarn docs
+    after_success: yarn run release --canary --yes --exact
+    deploy:
+      provider: pages
+      skip-cleanup: true
+      github-token: $GITHUB_TOKEN
+      local-dir: docs/
+      on:
+        branch: master
+env:
+  global:
+  - secure: WVz7KNwiEt3HI84NVFhlW2xtFzNHIzfpwJZwPyzj1xbE6316QyaExo9Zc8y6VviJ9ARckU3lHrLYn6mD8ZwdPhkdYZNstD/OQLMvufi4Iej3Lrm4z6LBQXItOO9AGfj3/ieIXGp6h7fcuodfS77n9zAx5Plw6upTn91LKNthbJvAHScycV7a3m7VDd+lenNj9CepqCRJTkGvMteYNwXYT8IJBpP8AYNB0PutfLxprg1ZLvzJKCmNuNEdGzneyXYor4er32FD950vqNwEhSInwGsH+yEmfUjc+s/96G/xdNqfqEq1FVO/vexMWBiPUPUg2l47hHNMWezRPMZdnXPjYEErYJwsySHWMPKY75pbLnnYEQ23xuC132BBWSXtI7RiS3wQPszswzNkjBS5htchU/F1qnI0ocWxa9opgGxrh9ct2aUbfqGA3reN1zff8ZPl/6QBEmcxUaueQr1/GBaz4OZ82Yf7r0soPHy/nMuYfPL8QU+NspsqgL+7hXQTn3bNtKRlzeWBOcTT2AU3CEyyrzJ0TsTkeI1UKWtyWHSOQCTzveYjA0kxLI1FU8SgFT/bE7KCkzaTkMavoucONnwOWgur0ajakSzLFM6Lt35bweAtbwj8MtN0aBqTEyiqqaMLBaEqzlfSeBWcnfguYmOqT4E5Nw+DSTGBwe6aJrg529Q=
+  - secure: Wq6ZsElNeUheZYn491mvLrkPLS+hRuWkPlwTEDfTmA+efKpkxE90EnTtqwnDLYZkYH8bNAZdS4I7ULItlq2TEnkioFxNxecM0L28nKmpto9asmcNnReYDXOH0VKGIelU1s4GGjVId2JSS93KWxiBu9+5E2PlzI7SrkUJKGCQmXpopcXmWf0BBBAzo9B1aC+uDx9enU2SdwCHwPnFePZSs7bYF7zX8npzN27mSDC2xrHuJvV3rIYLC3uASlbc86D4+UjT75V2a/MEaHCY9+/WMYV2bCma7FZnkyz6Ti5dRdPcAI7llacrmhFz7r2yeCVoxuZfeWtsVy4QiW2jqDBvHLA+vXJVRKaKeg9vJkXi6n4Qe8a8SqDStPH9PEN4z2275YjK5Gxh5tjvJNPRwoEnvc6hTJuXJ8OoaMNvDj1PEn4Rs6oin3p/M7bAKAhW50okEGB2ncDQ7WNpWav6FA1xGdG2EWz0w50sxtJDvlXapKduPBiZMoDUJGBbQ0D6Y8U2jT0esnwUls/Ou08a/TxuFuoWyma7ARW91sXxSmGtU/RcB8kpmolLrUViWRMR497yJ5wCcWCQJlOBnaCmO8u1s67Xu9V3PefXG6ZuITWex3ezODDgiet171byZClBzD1i6QB+F/hKFcPcxD+t2oRGuQUwzopQZXPYU+a6osjp6+0=
